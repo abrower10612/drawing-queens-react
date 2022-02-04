@@ -32,7 +32,7 @@ function App() {
     "KING"
   ];
 
-  /** get new deck id when reset button is selected */
+  /** get new deck id when page first loads and again any time the reset button is pressed */
   useEffect(async () => {
     try {
       const result = await axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1');
@@ -48,16 +48,17 @@ function App() {
   const drawCards = async () => {
     try {
       setLoading(true);
-      const result = await fetch(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=2`);
-      const data = await result.json();
+      const result = await axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=2`);
 
-      data.cards.map((card) => {
+      /** add new drawn cards to existing drawn cards array */
+      result.data.cards.map((card) => {
         if (card.value === "QUEEN") queenCount++;
         setCards(prevCards => [ ...prevCards, card ]);
       });
 
+      /** recursively call drawCards after 1000ms if all 4 Queens have not been drawn */
       if (queenCount < 4) {
-        await timeoutPromise()
+        await timeoutPromise();
         return drawCards(deckId);
       }
 
@@ -74,12 +75,13 @@ function App() {
   }
 
   /** space out network requests */
-  const timeoutPromise = async () => {
+  const timeoutPromise = () => {
     return new Promise(resolve => {
-      setTimeout(resolve, 1000);
+      setTimeout(resolve, 500);
     });
   }
 
+  /** reset state to prepare for running again */
   const resetAll = () => {
     setAlert('');
     setAlertColor('danger');
@@ -92,7 +94,7 @@ function App() {
     <div className={classes.appWrap}>
       <h1>Drawing Queens</h1>
       <p>Pressing start will begin utilizing the <a href="https://deckofcardsapi.com/" target="_blank" className={classes.link}>Deck of Cards API</a> to draw 2 cards repeatedly from a standard 52-card deck until each suit's Queen card is drawn.</p>
-      {alert.length > 0 && <Alert variant={alertColor}>{alert}</Alert>}
+      { alert.length > 0 && <Alert variant={alertColor}>{alert}</Alert> }
       {
         !loading
         ? !foundAllQueens
