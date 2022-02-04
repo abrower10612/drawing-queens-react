@@ -6,15 +6,16 @@ import useStyles from './styles';
 
 function App() {
   const classes = useStyles();
+  const [loading, setLoading] = useState(false);
   const [reset, setReset] = useState(0);
   const [deckId, setDeckId] = useState('');
-  const [foundAllQueens, setFoundAllQueens] = useState(false);
+  const [cards, setCards] = useState([]);
   const [hearts, setHearts] = useState([]);
   const [diamonds, setDiamonds] = useState([]);
-  const [cards, setCards] = useState([]);
   const [spades, setSpades] = useState([]);
   const [clubs, setClubs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [foundAllQueens, setFoundAllQueens] = useState(false);
+  let queenCount = 0;
 
   const sortOrder = [
     "ACE",
@@ -34,63 +35,42 @@ function App() {
 
   /** get new deck id when reset button is selected */
   useEffect(async () => {
-    try {
-      const result = await axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1');
+    axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1')
+    .then(result => {
       setDeckId(result.data.deck_id);
-    } catch (err) {
-      console.log(`Error: ${err.message}`);
-    }
+    })
+    .catch(err => console.log(`Error: ${err.message}`));
   }, [reset]);
 
   /** draw cards and push queen cards onto suit arrays until all 4 queen cards are drawn */
   const drawCards = async () => {
     setLoading(true);
     fetch(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=2`)
-        .then((result) => {
-            return result.json();
-        })
-        .then((data) => {
-            data.cards.forEach((card) => {
-                if (card.suit === "HEARTS") hearts.push(card.value);
-                if (card.suit === "DIAMONDS") diamonds.push(card.value);
-                if (card.suit === "SPADES") spades.push(card.value);
-                if (card.suit === "CLUBS") clubs.push(card.value);
+      .then((result) => {
+          return result.json();
+      })
+      .then((data) => {
+          data.cards.forEach((card) => {
+              if (card.suit === "HEARTS") hearts.push(card.value);
+              if (card.suit === "DIAMONDS") diamonds.push(card.value);
+              if (card.suit === "SPADES") spades.push(card.value);
+              if (card.suit === "CLUBS") clubs.push(card.value);
+              if (card.value === "QUEEN") queenCount++;
 
-                cards.push(card);
+              card.suit === "HEARTS" && handleHearts();
+              card.suit === "DIAMONDS" && handleDiamonds();
+              card.suit === "SPADES" && handleSpades();
+              card.suit === "CLUBS" && handleClubs();
 
-                card.suit === "HEARTS" && handleHearts();
-                card.suit === "DIAMONDS" && handleDiamonds();
-                card.suit === "SPADES" && handleSpades();
-                card.suit === "CLUBS" && handleClubs();
-            });
-        })
-        .then(() => {
-            if (
-                !hearts.includes("QUEEN") ||
-                !diamonds.includes("QUEEN") ||
-                !spades.includes("QUEEN") ||
-                !clubs.includes("QUEEN")
-            ) {
-                return timeoutPromise().then(() => drawCards(deckId));
-            }
-
-            setFoundAllQueens(true);
-
-            spades.sort((left, right) => { return sortOrder.indexOf(left) - sortOrder.indexOf(right); });
-            clubs.sort((left, right) => { return sortOrder.indexOf(left) - sortOrder.indexOf(right); });
-            hearts.sort((left, right) => { return sortOrder.indexOf(left) - sortOrder.indexOf(right); });
-            diamonds.sort((left, right) => { return sortOrder.indexOf(left) - sortOrder.indexOf(right); });
-
-            console.log(
-                `SPADES: [${spades.toString().replaceAll(",", ", ")}]\n` +
-                `CLUBS: [${clubs.toString().replaceAll(",", ", ")}]\n` +
-                `HEARTS: [${hearts.toString().replaceAll(",", ", ")}]\n` +
-                `DIAMONDS: [${diamonds.toString().replaceAll(",", ", ")}]\n`
-            );
-
-            setLoading(false);
-        })
-        .catch((err) => console.log(err.message));
+              cards.push(card);
+          });
+      })
+      .then(() => {
+          if (queenCount < 4) return timeoutPromise().then(() => drawCards(deckId));
+          setFoundAllQueens(true);
+          setLoading(false);
+      })
+      .catch((err) => console.log(err.message));
   }
 
   /** reset hearts array for instant rendering */
@@ -104,51 +84,50 @@ function App() {
   const handleDiamonds = () => {
     const temp = [];
     diamonds.forEach(card => temp.push(card));
-    setHearts(temp);
+    setDiamonds(temp);
   }
 
   /** reset spades array for instant rendering */
   const handleSpades = () => {
     const temp = [];
     spades.forEach(card => temp.push(card));
-    setHearts(temp);
+    setSpades(temp);
   }
 
   /** reset clubs array for instant rendering */
   const handleClubs = () => {
     const temp = [];
     clubs.forEach(card => temp.push(card));
-    setHearts(temp);
+    setClubs(temp);
   }
 
   /** space out network requests */
   const timeoutPromise = async () => {
-      return new Promise(resolve => {
-          setTimeout(resolve, 500);
-      });
+    return new Promise(resolve => {
+        setTimeout(resolve, 500);
+    });
+  }
+
+  const resetAll = () => {
+    setReset(reset + 1)
+    setFoundAllQueens(false);
+    setHearts([]);
+    setDiamonds([]);
+    setSpades([]);
+    setClubs([]);
+    setCards([]);
   }
 
   return (
     <div className={classes.appWrap}>
-      <h1>Search for the Queens</h1>
+      <h1>Drawing Queens</h1>
+      <p>Pressing start will begin utilizing the <a href="https://deckofcardsapi.com/" target="_blank" className={classes.link}>Deck of Cards API</a> to draw 2 cards repeatedly from a standard 52-card deck until each suit's Queen card is drawn.</p>
       {
         !loading
         ? !foundAllQueens
-        && <Button variant="contained" onClick={() => drawCards()}>START</Button>
+        ? <Button variant="contained" onClick={() => drawCards()}>START</Button>
+        : <Button variant="outlined" onClick={() => resetAll()}>START OVER</Button>
         : <div className={classes.loaderWrap}><HashLoader className={classes.loader} color="gray"/></div>
-      }
-      { 
-        foundAllQueens && 
-        <Button variant="outlined" onClick={() => {
-          setReset(reset + 1)
-          setFoundAllQueens(false);
-          setHearts([]);
-          setDiamonds([]);
-          setSpades([]);
-          setClubs([]);
-          setCards([]);
-        }}
-        >Start Over</Button>
       }
       <div>
         <h2>Hearts</h2>

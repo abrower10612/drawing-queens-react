@@ -34,6 +34,10 @@ const useStyles = createUseStyles({
   
     loader: {
       position: 'absolute'
+    },
+
+    link: {
+      color: 'blue'
     }
   });
 
