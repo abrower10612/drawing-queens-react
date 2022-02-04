@@ -135,7 +135,7 @@ function App() {
     <div className={classes.appWrap}>
       <h1>Drawing Queens</h1>
       <p>Pressing start will begin utilizing the <a href="https://deckofcardsapi.com/" target="_blank" className={classes.link}>Deck of Cards API</a> to draw 2 cards repeatedly from a standard 52-card deck until each suit's Queen card is drawn.</p>
-      {alert.length > 0 && <Alert variant={alertColor}>{alert}</Alert>}
+      { alert.length > 0 && <Alert variant={alertColor}>{alert}</Alert> }
       {
         !loading
         ? !foundAllQueens
