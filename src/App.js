@@ -47,28 +47,28 @@ function App() {
     setLoading(true);
     fetch(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=2`)
       .then((result) => {
-          return result.json();
+        return result.json();
       })
       .then((data) => {
-          data.cards.forEach((card) => {
-              if (card.suit === "HEARTS") hearts.push(card.value);
-              if (card.suit === "DIAMONDS") diamonds.push(card.value);
-              if (card.suit === "SPADES") spades.push(card.value);
-              if (card.suit === "CLUBS") clubs.push(card.value);
-              if (card.value === "QUEEN") queenCount++;
+        data.cards.forEach((card) => {
+          if (card.suit === "HEARTS") hearts.push(card.value);
+          if (card.suit === "DIAMONDS") diamonds.push(card.value);
+          if (card.suit === "SPADES") spades.push(card.value);
+          if (card.suit === "CLUBS") clubs.push(card.value);
+          if (card.value === "QUEEN") queenCount++;
 
-              card.suit === "HEARTS" && handleHearts();
-              card.suit === "DIAMONDS" && handleDiamonds();
-              card.suit === "SPADES" && handleSpades();
-              card.suit === "CLUBS" && handleClubs();
+          card.suit === "HEARTS" && handleHearts();
+          card.suit === "DIAMONDS" && handleDiamonds();
+          card.suit === "SPADES" && handleSpades();
+          card.suit === "CLUBS" && handleClubs();
 
-              cards.push(card);
-          });
+          cards.push(card);
+        });
       })
       .then(() => {
-          if (queenCount < 4) return timeoutPromise().then(() => drawCards(deckId));
-          setFoundAllQueens(true);
-          setLoading(false);
+        if (queenCount < 4) return timeoutPromise().then(() => drawCards(deckId));
+        setFoundAllQueens(true);
+        setLoading(false);
       })
       .catch((err) => console.log(err.message));
   }
@@ -104,7 +104,7 @@ function App() {
   /** space out network requests */
   const timeoutPromise = async () => {
     return new Promise(resolve => {
-        setTimeout(resolve, 500);
+      setTimeout(resolve, 500);
     });
   }
 
