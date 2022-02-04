@@ -3,10 +3,13 @@ import axios from 'axios';
 import Button from '@mui/material/Button';
 import HashLoader from "react-spinners/HashLoader";
 import useStyles from './styles';
+import { Alert } from 'react-bootstrap';
 
 function App() {
   const classes = useStyles();
   const [loading, setLoading] = useState(false);
+  const [alert, setAlert] = useState('');
+  const [alertColor, setAlertColor] = useState('danger');
   const [reset, setReset] = useState(0);
   const [deckId, setDeckId] = useState('');
   const [cards, setCards] = useState([]);
@@ -39,7 +42,10 @@ function App() {
     .then(result => {
       setDeckId(result.data.deck_id);
     })
-    .catch(err => console.log(`Error: ${err.message}`));
+    .catch(err => {
+      setAlertColor('danger');
+      setAlert(err.message);
+    });
   }, [reset]);
 
   /** draw cards and push queen cards onto suit arrays until all 4 queen cards are drawn */
@@ -67,10 +73,15 @@ function App() {
       })
       .then(() => {
         if (queenCount < 4) return timeoutPromise().then(() => drawCards(deckId));
+        setAlertColor('success');
+        setAlert('All Queen cards have now been drawn');
         setFoundAllQueens(true);
         setLoading(false);
       })
-      .catch((err) => console.log(err.message));
+      .catch(err => {
+        setAlertColor('danger');
+        setAlert(err.message);
+      });
   }
 
   /** reset hearts array for instant rendering */
@@ -109,6 +120,8 @@ function App() {
   }
 
   const resetAll = () => {
+    setAlert('');
+    setAlertColor('danger');
     setReset(reset + 1)
     setFoundAllQueens(false);
     setHearts([]);
@@ -122,14 +135,15 @@ function App() {
     <div className={classes.appWrap}>
       <h1>Drawing Queens</h1>
       <p>Pressing start will begin utilizing the <a href="https://deckofcardsapi.com/" target="_blank" className={classes.link}>Deck of Cards API</a> to draw 2 cards repeatedly from a standard 52-card deck until each suit's Queen card is drawn.</p>
+      {alert.length > 0 && <Alert variant={alertColor}>{alert}</Alert>}
       {
         !loading
         ? !foundAllQueens
-        ? <Button variant="contained" onClick={() => drawCards()}>START</Button>
-        : <Button variant="outlined" onClick={() => resetAll()}>START OVER</Button>
+        ? <Button variant="contained" onClick={() => drawCards()} className={classes.button}>START</Button>
+        : <Button variant="outlined" onClick={() => resetAll()} className={classes.button}>START OVER</Button>
         : <div className={classes.loaderWrap}><HashLoader className={classes.loader} color="gray"/></div>
       }
-      <div>
+      <div className={classes.suitsWrap}>
         <h2>Hearts</h2>
         {
           cards

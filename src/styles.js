@@ -38,6 +38,10 @@ const useStyles = createUseStyles({
 
     link: {
       color: 'blue'
+    },
+
+    suitsWrap: {
+      marginTop: '20px'
     }
   });
 
