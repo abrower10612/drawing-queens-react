@@ -9,14 +9,10 @@ function App() {
   const classes = useStyles();
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState('');
-  const [alertColor, setAlertColor] = useState('danger');
-  const [reset, setReset] = useState(0);
+  const [alertColor, setAlertColor] = useState('');
+  const [reset, setReset] = useState(false);
   const [deckId, setDeckId] = useState('');
   const [cards, setCards] = useState([]);
-  const [hearts, setHearts] = useState([]);
-  const [diamonds, setDiamonds] = useState([]);
-  const [spades, setSpades] = useState([]);
-  const [clubs, setClubs] = useState([]);
   const [foundAllQueens, setFoundAllQueens] = useState(false);
   let queenCount = 0;
 
@@ -38,97 +34,58 @@ function App() {
 
   /** get new deck id when reset button is selected */
   useEffect(async () => {
-    axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1')
-    .then(result => {
+    try {
+      const result = await axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1');
       setDeckId(result.data.deck_id);
-    })
-    .catch(err => {
+    } catch (err) {
+      setLoading(false);
       setAlertColor('danger');
       setAlert(err.message);
-    });
+    }
   }, [reset]);
 
   /** draw cards and push queen cards onto suit arrays until all 4 queen cards are drawn */
   const drawCards = async () => {
-    setLoading(true);
-    fetch(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=2`)
-      .then((result) => {
-        return result.json();
-      })
-      .then((data) => {
-        data.cards.forEach((card) => {
-          if (card.suit === "HEARTS") hearts.push(card.value);
-          if (card.suit === "DIAMONDS") diamonds.push(card.value);
-          if (card.suit === "SPADES") spades.push(card.value);
-          if (card.suit === "CLUBS") clubs.push(card.value);
-          if (card.value === "QUEEN") queenCount++;
+    try {
+      setLoading(true);
+      const result = await fetch(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=2`);
+      const data = await result.json();
 
-          card.suit === "HEARTS" && handleHearts();
-          card.suit === "DIAMONDS" && handleDiamonds();
-          card.suit === "SPADES" && handleSpades();
-          card.suit === "CLUBS" && handleClubs();
-
-          cards.push(card);
-        });
-      })
-      .then(() => {
-        if (queenCount < 4) return timeoutPromise().then(() => drawCards(deckId));
-        setAlertColor('success');
-        setAlert('All Queen cards have now been drawn');
-        setFoundAllQueens(true);
-        setLoading(false);
-      })
-      .catch(err => {
-        setAlertColor('danger');
-        setAlert(err.message);
+      data.cards.map((card) => {
+        if (card.value === "QUEEN") queenCount++;
+        setCards(prevCards => [ ...prevCards, card ]);
       });
-  }
 
-  /** reset hearts array for instant rendering */
-  const handleHearts = () => {
-    const temp = [];
-    hearts.forEach(card => temp.push(card));
-    setHearts(temp);
-  }
+      if (queenCount < 4) {
+        await timeoutPromise()
+        return drawCards(deckId);
+      }
 
-  /** reset diamonds array for instant rendering */
-  const handleDiamonds = () => {
-    const temp = [];
-    diamonds.forEach(card => temp.push(card));
-    setDiamonds(temp);
-  }
+      setAlertColor('success');
+      setAlert('All Queen cards have now been drawn');
+      setFoundAllQueens(true);
+      setLoading(false);
 
-  /** reset spades array for instant rendering */
-  const handleSpades = () => {
-    const temp = [];
-    spades.forEach(card => temp.push(card));
-    setSpades(temp);
-  }
-
-  /** reset clubs array for instant rendering */
-  const handleClubs = () => {
-    const temp = [];
-    clubs.forEach(card => temp.push(card));
-    setClubs(temp);
+    } catch (err) {
+      setLoading(false);
+      setAlertColor('danger');
+      setAlert(err.message);
+    }
   }
 
   /** space out network requests */
   const timeoutPromise = async () => {
     return new Promise(resolve => {
-      setTimeout(resolve, 500);
+      setTimeout(resolve, 1000);
     });
   }
 
   const resetAll = () => {
     setAlert('');
     setAlertColor('danger');
-    setReset(reset + 1)
+    setReset(!reset)
     setFoundAllQueens(false);
-    setHearts([]);
-    setDiamonds([]);
-    setSpades([]);
-    setClubs([]);
-    setCards([]);
+    setCards(() => []);
   }
 
   return (
