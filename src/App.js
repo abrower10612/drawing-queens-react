@@ -4,6 +4,7 @@ import Button from '@mui/material/Button';
 import HashLoader from "react-spinners/HashLoader";
 import useStyles from './styles';
 import { Alert } from 'react-bootstrap';
+import SuitComponent from './SuitComponent';
 
 function App() {
   const classes = useStyles();
@@ -15,6 +16,13 @@ function App() {
   const [cards, setCards] = useState([]);
   const [foundAllQueens, setFoundAllQueens] = useState(false);
   let queenCount = 0;
+
+  const suits = [
+    "Hearts",
+    "Diamonds",
+    "Spades",
+    "Clubs"
+  ]
 
   const sortOrder = [
     "ACE",
@@ -35,6 +43,10 @@ function App() {
   /** get new deck id when page first loads and again any time the reset button is pressed */
   useEffect(async () => {
     try {
+      setAlert('');
+      setAlertColor('danger');
+      setFoundAllQueens(false);
+      setCards([]);
       const result = await axios.get('https://deckofcardsapi.com/api/deck/new/shuffle/?deck_count=1');
       setDeckId(result.data.deck_id);
     } catch (err) {
@@ -42,6 +54,7 @@ function App() {
       setAlertColor('danger');
       setAlert(err.message);
     }
+    setReset(false);
   }, [reset]);
 
   /** draw cards and push queen cards onto suit arrays until all 4 queen cards are drawn */
@@ -51,27 +64,30 @@ function App() {
       const result = await axios.get(`https://deckofcardsapi.com/api/deck/${deckId}/draw/?count=2`);
 
       /** add new drawn cards to existing drawn cards array */
-      result.data.cards.map((card) => {
+      result.data.cards.forEach(card => {
         if (card.value === "QUEEN") queenCount++;
         setCards(prevCards => [ ...prevCards, card ]);
       });
 
-      /** recursively call drawCards after 1000ms if all 4 Queens have not been drawn */
-      if (queenCount < 4) {
-        await timeoutPromise();
-        return drawCards(deckId);
-      }
-
-      setAlertColor('success');
-      setAlert('All Queen cards have now been drawn');
-      setFoundAllQueens(true);
-      setLoading(false);
-
+      checkQueenCount();
     } catch (err) {
       setLoading(false);
       setAlertColor('danger');
       setAlert(err.message);
     }
+  }
+
+  const checkQueenCount = async () => {
+    /** recursively call drawCards after 1000ms if all 4 Queens have not been drawn */
+    if (queenCount < 4) {
+      await timeoutPromise();
+      return drawCards(deckId);
+    }
+
+    setAlertColor('success');
+    setAlert('All Queen cards have now been drawn');
+    setFoundAllQueens(true);
+    setLoading(false);
   }
 
   /** space out network requests */
@@ -81,64 +97,25 @@ function App() {
     });
   }
 
-  /** reset state to prepare for running again */
-  const resetAll = () => {
-    setAlert('');
-    setAlertColor('danger');
-    setReset(!reset)
-    setFoundAllQueens(false);
-    setCards(() => []);
-  }
-
   return (
     <div className={classes.appWrap}>
       <h1>Drawing Queens</h1>
       <p>Pressing start will begin utilizing the <a href="https://deckofcardsapi.com/" target="_blank" className={classes.link}>Deck of Cards API</a> to draw 2 cards repeatedly from a standard 52-card deck until each suit's Queen card is drawn.</p>
       { alert.length > 0 && <Alert variant={alertColor}>{alert}</Alert> }
-      {
-        !loading
+      {!loading
         ? !foundAllQueens
         ? <Button variant="contained" onClick={() => drawCards()} className={classes.button}>START</Button>
-        : <Button variant="outlined" onClick={() => resetAll()} className={classes.button}>START OVER</Button>
-        : <div className={classes.loaderWrap}><HashLoader className={classes.loader} color="gray"/></div>
-      }
+        : <Button variant="outlined" onClick={() => setReset(true)} className={classes.button}>START OVER</Button>
+        : <div className={classes.loaderWrap}><HashLoader className={classes.loader} color="gray"/></div>}
       <div className={classes.suitsWrap}>
-        <h2>Hearts</h2>
-        {
-          cards
-          .filter(card => card.suit === "HEARTS")
-          .sort((a, b) => { return sortOrder.indexOf(a.value) - sortOrder.indexOf(b.value) })
-          .map((heart, index) => {
-            return <img key={index} src={heart.image} alt="" className={ heart.value === "QUEEN" ? classes.queen : classes.card }/>
-          })
-        }
-        <h2>Diamonds</h2>
-        {
-          cards
-          .filter(card => card.suit === "DIAMONDS")
-          .sort((a, b) => { return sortOrder.indexOf(a.value) - sortOrder.indexOf(b.value) })
-          .map((diamond, index) => {
-            return <img key={index} src={diamond.image} alt="" className={ diamond.value === "QUEEN" ? classes.queen : classes.card }/>
-          })
-        }
-        <h2>Spades</h2>
-        {
-          cards
-          .filter(card => card.suit === "SPADES")
-          .sort((a, b) => { return sortOrder.indexOf(a.value) - sortOrder.indexOf(b.value) })
-          .map((spade, index) => {
-            return <img key={index} src={spade.image} alt="" className={ spade.value === "QUEEN" ? classes.queen : classes.card }/>
-          })
-        }
-        <h2>Clubs</h2>
-        {
-          cards
-          .filter(card => card.suit === "CLUBS")
-          .sort((a, b) => { return sortOrder.indexOf(a.value) - sortOrder.indexOf(b.value) })
-          .map((club, index) => {
-            return <img key={index} src={club.image} alt="" className={ club.value === "QUEEN" ? classes.queen : classes.card }/>
-          })
-        }
+        {suits.map((suit, index) => {
+            return (
+              <div key={index} >
+                <h2>{suit}</h2>
+                <SuitComponent suit={suit.toUpperCase()} cards={cards} classes={classes} sortOrder={sortOrder}/>
+              </div>
+            )
+          })}
       </div>
     </div>
   );
